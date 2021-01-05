@@ -9,7 +9,7 @@ def createSplittedMergedDataset(datasets_base_dir):
     ''' Returns tuple of directory paths (train_dir, val_dir, test_dir) of the created merged dataset '''
 
     # settings
-    dataset_names = ['Chess-extra-dataset-1', 'Chess-extra-dataset-2', 'Chessman-image-dataset']
+    dataset_names = ['Chess-extra-dataset-1', 'Chess-extra-dataset-2', 'Chess-extra-dataset-3', 'Chessman-image-dataset']
     split_names = ['train', 'val', 'test']
     split_ratios = [0.6, 0.3, 0.1]
     random.seed(1234) # for deterministic splitting
