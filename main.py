@@ -11,7 +11,7 @@ def createSplittedMergedDataset(datasets_base_dir):
     # settings
     dataset_names = ['Chess-extra-dataset-1', 'Chess-extra-dataset-2', 'Chess-extra-dataset-3', 'Chessman-image-dataset']
     split_names = ['train', 'val', 'test']
-    split_ratios = [0.6, 0.3, 0.1]
+    split_ratios = [0.7, 0.15, 0.15]
     random.seed(1234) # for deterministic splitting
 
     # utility
