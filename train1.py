@@ -121,7 +121,7 @@ def test_model(trained_model):
 
     score = trained_model.evaluate_generator(
         test_generator,
-        steps=test_generator.n // batch_size,
+        steps=test_generator.n // batch_size + 1,
         verbose=2,
         callbacks=[])
 
