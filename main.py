@@ -47,13 +47,17 @@ def createSplittedMergedDataset(datasets_base_dir):
             files = glob(os.path.join(class_dir, "*"))
             random.shuffle(files)
             for file in files:
+                extension = str.lower(os.path.splitext(file)[1])
+                if extension != '.jpg' and extension != '.jpeg' and extension != '.png':
+                    continue
+
                 # choose split directory (train/val/test) to add file to such that the real_split_ratios is closest to split_ratios
                 per_split_count = sum(per_split_counts)
                 real_split_ratios = [count / max(1, per_split_count) for count in per_split_counts]
                 diffs = [split_ratio - real_split_ratio for (split_ratio, real_split_ratio) in zip(split_ratios, real_split_ratios)]
                 maxDiffIndex = diffs.index(max(diffs))
 
-                newFileName = str(per_split_counts[maxDiffIndex]) + os.path.splitext(file)[1]
+                newFileName = str(per_split_counts[maxDiffIndex]) + extension
                 newFilePath = os.path.join(merged_dataset_dir, split_names[maxDiffIndex], class_name, newFileName)
                 shutil.copyfile(file, newFilePath)
 
