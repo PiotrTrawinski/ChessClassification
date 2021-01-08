@@ -95,8 +95,6 @@ def train_model(save_history=True):
         callbacks=[ModelCheckpoint(filepath=model_checkpoint_filepath, verbose=1, save_best_only=True)]
     )
 
-    #model.save_weights('first_ty_final.h5')
-
     if save_history:
         save_history_to_file(history)
 
@@ -106,8 +104,7 @@ def save_history_to_file(history):
 
 
 def test_saved_model():
-    model = build_model()
-    model.load_weights(model_checkpoint_filepath)
+    model = tf.keras.models.load_model(model_checkpoint_filepath)
     test_model(model)
 
 
