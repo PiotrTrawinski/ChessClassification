@@ -1,9 +1,10 @@
 import json
 import os
+import datetime
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Dense
-from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
@@ -12,6 +13,7 @@ dataset_dir_base = '../data/MergedDataset/'
 dataset_paths = [dataset_dir_base + split for split in ["train","val","test"]]
 model_checkpoint_filepath = "checkpoints.h5"
 model_history_filepath = "history.json.txt"
+log_dir_base = "logs/fit/"
 
 img_height = 512
 img_width = img_height//2
@@ -84,7 +86,9 @@ def train_model(save_history=True):
     model = build_model()
     generators = get_generators()
     num_samples = get_num_samples()
-
+	log_dir = log_dir_base + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
+	
     history = model.fit_generator(
         generators[0],
         steps_per_epoch=np.ceil(num_samples[0] / batch_size),
@@ -92,7 +96,8 @@ def train_model(save_history=True):
         validation_data=generators[1],
         validation_steps=np.ceil(num_samples[1] / batch_size),
         #verbose = 2
-        callbacks=[ModelCheckpoint(filepath=model_checkpoint_filepath, verbose=1, save_best_only=True)]
+        callbacks=[tensorboard_callback,
+                   ModelCheckpoint(filepath=model_checkpoint_filepath, verbose=1, save_best_only=True)]
     )
 
     if save_history:
