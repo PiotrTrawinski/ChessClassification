@@ -4,6 +4,7 @@ import datetime
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import BatchNormalization, Dropout, GlobalAveragePooling2D
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -18,7 +19,7 @@ log_dir_base = "logs/fit/"
 img_height = 512
 img_width = img_height//2
 batch_size = 40
-epochs = 16
+epochs = 60
 learn_rate = 0.001
 
 
@@ -61,16 +62,18 @@ def build_model():
     conv_base = tf.keras.applications.ResNet50V2(
         include_top=False,
         weights='imagenet',
-        input_shape=(img_height, img_width, 3),
-        pooling='avg'
+        input_shape=(img_height, img_width, 3)
     )
-    for layer in conv_base.layers[:-6]:
+    for layer in conv_base.layers[:-2]:
         layer.trainable = False
 
     model = tf.keras.Sequential()
     model.add(conv_base)
-    model.add(Dense(256, activation='relu'))
-    model.add(Dense(32, activation='relu'))
+    model.add(GlobalAveragePooling2D())
+    model.add(Dense(512, activation='relu'))
+    model.add(Dropout(0.2))
+    model.add(Dense(64, activation='relu'))
+    model.add(BatchNormalization())
     model.add(Dense(16, activation='relu'))
     model.add(Dense(6, activation='softmax'))
 
@@ -88,6 +91,7 @@ def train_model(save_history=True):
     num_samples = get_num_samples()
 	log_dir = log_dir_base + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
+	MC = ModelCheckpoint(filepath=model_checkpoint_filepath, verbose=1, save_best_only=True)
 	
     history = model.fit_generator(
         generators[0],
@@ -96,8 +100,7 @@ def train_model(save_history=True):
         validation_data=generators[1],
         validation_steps=np.ceil(num_samples[1] / batch_size),
         #verbose = 2
-        callbacks=[tensorboard_callback,
-                   ModelCheckpoint(filepath=model_checkpoint_filepath, verbose=1, save_best_only=True)]
+        callbacks=[tensorboard_callback, MC]
     )
 
     if save_history:
@@ -118,6 +121,7 @@ def test_model(trained_model):
     test_generator = test_datagen.flow_from_directory(
         dataset_paths[2],
         target_size=(img_width, img_height),
+		color_mode='rgb',
         batch_size=batch_size,
         class_mode='categorical')
 
