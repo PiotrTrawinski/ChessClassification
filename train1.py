@@ -117,7 +117,7 @@ def test_model(trained_model):
     test_datagen = ImageDataGenerator(rescale=1. / 255)
     test_generator = test_datagen.flow_from_directory(
         dataset_paths[2],
-        target_size=(img_width, img_height),
+        target_size=(img_height, img_width),
         batch_size=batch_size,
         class_mode='categorical')
 
