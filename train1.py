@@ -86,7 +86,7 @@ def train_model(save_history=True):
     model = build_model()
     generators = get_generators()
     num_samples = get_num_samples()
-	log_dir = log_dir_base + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = log_dir_base + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 	
     history = model.fit_generator(
