@@ -2,9 +2,10 @@ import os
 import datetime
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout, Dense
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorboard.plugins.hparams import api as hp
 
@@ -21,6 +22,11 @@ epochs = 16
 
 HP_NUM_UNITS = hp.HParam('num_units', hp.Discrete([16, 32]))
 HP_LEARNING_RATE = hp.HParam('lrate', hp.Discrete([1e-4, 1e-5]))
+HP_LABEL_SMOOTHING = hp.HParam('label_smoothing', hp.Discrete([0., 0.1]))
+#HP_REGULARIZER = hp.HParam('regularizer', hp.Discrete([tf.keras.regularizers.l1(0.01), tf.keras.regularizers.l2(0.01)]))
+HP_REGULARIZER = hp.HParam('regularizer', hp.Discrete(['l1', 'l2']))
+HP_DROPOUT = hp.HParam('dropout', hp.Discrete([0., 0.2]))
+
 
 
 def get_generators():
@@ -70,12 +76,13 @@ def build_model(hparams):
 
     model = tf.keras.Sequential()
     model.add(conv_base)
-    model.add(Dense(256, activation='relu'))
-	model.add(Dense(hparams[HP_NUM_UNITS], activation='relu'))
+    model.add(Dense(256, activation='relu', kernel_regularizer=hparams[HP_REGULARIZER]))
+    model.add(Dropout(hparams[HP_DROPOUT]))
+    model.add(Dense(hparams[HP_NUM_UNITS], activation='relu', kernel_regularizer=hparams[HP_REGULARIZER]))
     model.add(Dense(6, activation='softmax'))
 
     model.compile(
-        loss='categorical_crossentropy',
+        loss=CategoricalCrossentropy(label_smoothing=hparams[HP_LABEL_SMOOTHING]),
         optimizer=Adam(learning_rate=hparams[HP_LEARNING_RATE]),
         metrics=['accuracy'])
     model.summary()
@@ -139,16 +146,22 @@ def main():
     session_num = 0
     for num_units in HP_NUM_UNITS.domain.values:
         for lrate in HP_LEARNING_RATE.domain.values:
-                hparams = {
-                    HP_NUM_UNITS: num_units,
-                    HP_LEARNING_RATE: lrate,
-                }
-                log_id = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-                log_id = "run-{}-{}".format(log_id, session_num)
-                print('--- Starting trial: {}'.format(log_id ))
-                print({h.name: hparams[h] for h in hparams})
-                run(log_id, hparams)
-                session_num += 1
+            for smoothing in HP_LABEL_SMOOTHING.domain.values:
+                for regularizer in HP_REGULARIZER.domain.values:
+                    for dropout in HP_DROPOUT.domain.values:
+                        hparams = {
+                            HP_NUM_UNITS: num_units,
+                            HP_LEARNING_RATE: lrate,
+                            HP_LABEL_SMOOTHING: smoothing,
+                            HP_REGULARIZER: regularizer,
+                            HP_DROPOUT: dropout
+                        }
+                        log_id = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+                        log_id = "run-{}-{}".format(log_id, session_num)
+                        print('--- Starting trial: {}'.format(log_id ))
+                        print({h.name: hparams[h] for h in hparams})
+                        run(log_id, hparams)
+                        session_num += 1
 
 
 if __name__ == '__main__':
