@@ -17,19 +17,18 @@ log_dir_base = "logs/hparam_tuning/"  # "logs/fit/"
 
 img_height = 512
 img_width = img_height//2
-batch_size = 40
-epochs = 16
+epochs = 25
 
 HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([32, 64]))
-HP_LEARNING_RATE = hp.HParam('lrate', hp.Discrete([1e-1, 1e-2, 1e-3]))
+HP_LEARNING_RATE = hp.HParam('lrate', hp.Discrete([1e-2, 1e-3]))
 HP_LABEL_SMOOTHING = hp.HParam('label_smoothing', hp.Discrete([0.0, 0.1]))
 #HP_REGULARIZER = hp.HParam('regularizer', hp.Discrete([tf.keras.regularizers.l1(0.01), tf.keras.regularizers.l2(0.01)]))
 HP_REGULARIZER = hp.HParam('regularizer', hp.Discrete(['l1', 'l2']))
-HP_DROPOUT = hp.HParam('dropout', hp.Discrete([0.0, 0.4, 0.8]))
+HP_DROPOUT = hp.HParam('dropout', hp.Discrete([0.0, 0.5]))
 
 
 
-def get_generators():
+def get_generators(hparams):
     test_gen = ImageDataGenerator(rescale=1. / 255)
     train_gen = ImageDataGenerator(
         rescale=1. / 255,
@@ -43,7 +42,7 @@ def get_generators():
         dataset_paths[0],
         target_size=(img_height, img_width),
         color_mode='rgb',
-        batch_size=batch_size,
+        batch_size=hparams[HP_BATCH_SIZE],
         class_mode='categorical',
         shuffle=True
     )
@@ -51,7 +50,7 @@ def get_generators():
         dataset_paths[1],
         target_size=(img_height, img_width),
         color_mode='rgb',
-        batch_size=batch_size,
+        batch_size=hparams[HP_BATCH_SIZE],
         class_mode='categorical',
         shuffle=True
     )
@@ -91,7 +90,7 @@ def build_model(hparams):
 
 def train_model(hparams, log_id):
     model = build_model(hparams)
-    generators = get_generators()
+    generators = get_generators(hparams)
     num_samples = get_num_samples()
     log_dir = log_dir_base + log_id
 
@@ -102,10 +101,10 @@ def train_model(hparams, log_id):
 
     history = model.fit_generator(
         generators[0],
-        steps_per_epoch=np.ceil(num_samples[0] / batch_size),
+        steps_per_epoch=np.ceil(num_samples[0] / hparams[HP_BATCH_SIZE]),
         epochs=epochs,
         validation_data=generators[1],
-        validation_steps=np.ceil(num_samples[1] / batch_size),
+        validation_steps=np.ceil(num_samples[1] / hparams[HP_BATCH_SIZE]),
         callbacks=[TB, HP, MC]
     )
 
@@ -118,6 +117,7 @@ def test_saved_model():
 
 
 def test_model(trained_model):
+    batch_size = 32
     test_datagen = ImageDataGenerator(rescale=1. / 255)
     test_generator = test_datagen.flow_from_directory(
         dataset_paths[2],
@@ -138,7 +138,6 @@ def test_model(trained_model):
 def run(run_name, hparams):
     with tf.summary.create_file_writer(log_dir_base + run_name).as_default():
         hp.hparams(hparams)
-        batch_size = hparams[HP_BATCH_SIZE]
         accuracy = train_model(hparams, run_name)
         tf.summary.scalar('accuracy', accuracy, step=1)
 
