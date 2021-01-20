@@ -20,12 +20,12 @@ img_width = img_height//2
 batch_size = 40
 epochs = 16
 
-HP_NUM_UNITS = hp.HParam('num_units', hp.Discrete([16, 32]))
-HP_LEARNING_RATE = hp.HParam('lrate', hp.Discrete([1e-4, 1e-5]))
-HP_LABEL_SMOOTHING = hp.HParam('label_smoothing', hp.Discrete([0., 0.1]))
+HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([32, 64]))
+HP_LEARNING_RATE = hp.HParam('lrate', hp.Discrete([1e-1, 1e-2, 1e-3]))
+HP_LABEL_SMOOTHING = hp.HParam('label_smoothing', hp.Discrete([0.0, 0.1]))
 #HP_REGULARIZER = hp.HParam('regularizer', hp.Discrete([tf.keras.regularizers.l1(0.01), tf.keras.regularizers.l2(0.01)]))
 HP_REGULARIZER = hp.HParam('regularizer', hp.Discrete(['l1', 'l2']))
-HP_DROPOUT = hp.HParam('dropout', hp.Discrete([0., 0.2]))
+HP_DROPOUT = hp.HParam('dropout', hp.Discrete([0.0, 0.4, 0.8]))
 
 
 
@@ -78,7 +78,7 @@ def build_model(hparams):
     model.add(conv_base)
     model.add(Dense(256, activation='relu', kernel_regularizer=hparams[HP_REGULARIZER]))
     model.add(Dropout(hparams[HP_DROPOUT]))
-    model.add(Dense(hparams[HP_NUM_UNITS], activation='relu', kernel_regularizer=hparams[HP_REGULARIZER]))
+    model.add(Dense(32, activation='relu', kernel_regularizer=hparams[HP_REGULARIZER]))
     model.add(Dense(6, activation='softmax'))
 
     model.compile(
@@ -132,25 +132,26 @@ def test_model(trained_model):
         verbose=2,
         callbacks=[])
 
-	return score
+    return score
 
 
 def run(run_name, hparams):
     with tf.summary.create_file_writer(log_dir_base + run_name).as_default():
         hp.hparams(hparams)
+        batch_size = hparams[HP_BATCH_SIZE]
         accuracy = train_model(hparams, run_name)
         tf.summary.scalar('accuracy', accuracy, step=1)
 
 
 def main():
     session_num = 0
-    for num_units in HP_NUM_UNITS.domain.values:
+    for hp_batch_size in HP_BATCH_SIZE.domain.values:
         for lrate in HP_LEARNING_RATE.domain.values:
             for smoothing in HP_LABEL_SMOOTHING.domain.values:
                 for regularizer in HP_REGULARIZER.domain.values:
                     for dropout in HP_DROPOUT.domain.values:
                         hparams = {
-                            HP_NUM_UNITS: num_units,
+                            HP_BATCH_SIZE: hp_batch_size,
                             HP_LEARNING_RATE: lrate,
                             HP_LABEL_SMOOTHING: smoothing,
                             HP_REGULARIZER: regularizer,
